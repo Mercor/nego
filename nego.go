@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"code.google.com/p/go.net/html"
 	"fmt"
 	"net/http"
 	"net/url"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -24,7 +26,7 @@ type Page struct {
 	Links             []Link
 	tmpLink           Link
 	Doc               *html.Node
-	time              time.Time
+	Time              time.Time
 }
 
 func (p *Page) getLinks() {
@@ -39,8 +41,10 @@ func (p *Page) getLink(n *html.Node) {
 	}
 	if n.Type == html.TextNode && p.foundLink == true {
 		fmt.Println("found Text Token ", n.Data)
-		p.tmpLink.Text = n.Data
-		p.Links = append(p.Links, p.tmpLink)
+		p.tmpLink.Text = strings.TrimSpace(n.Data)
+		if len(p.tmpLink.Text) > 3 {
+			p.Links = append(p.Links, p.tmpLink)
+		}
 		p.foundLink = false
 	}
 	if n.Type == html.ElementNode && n.Data == "a" {
@@ -76,7 +80,7 @@ func (p *Page) getLink(n *html.Node) {
 
 func (p *Page) LoadSite() {
 
-	p.time = time.Now()
+	p.Time = time.Now()
 	p.baseURL, _ = url.Parse(p.SiteURL)
 	client := &http.Client{}
 	client.CheckRedirect =
@@ -110,19 +114,34 @@ func (p *Page) PostForm() {
 	values.Set("submitted", "true")
 	//	values.Set("news", $data)
 
-	//$test=$site["name"]."\n";#"testname\n";
-	//$test.="name:".$site["name"]."\n";
-	//$test.="cols:".$site["colcount"]."\n";
-	//$test.="headln:".trim($site->headline)."\n";
-	//$test.="logo:".trim($site["logo"])."\n";
-	//$test.="url:".trim($site->siteurl)."\n";
+	var buffer bytes.Buffer
 
-	// $test.=$links;
+	fmt.Println(buffer.String())
+	buffer.WriteString("test\n")
+	buffer.WriteString("name:test\n")
+	buffer.WriteString("cols:2\n")
+	buffer.WriteString("headln:test\n")
+	buffer.WriteString("logo:test.jpg\n")
+	buffer.WriteString("url:test.com\n")
+	for _, i := range p.Links {
+		buffer.WriteString(i.Text)
+		buffer.WriteString("|")
+		buffer.WriteString(i.Href)
+		buffer.WriteString("|")
+		buffer.WriteString(RenderTime(p.Time))
+		buffer.WriteString("\n")
+
+	}
+	values.Set("news", buffer.String())
+
+	proxyUrl, err := url.Parse("http://127.0.0.1:8888")
+	myClient := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
+
 	postUrl := "http://www.newsempire.net/up/shownews.php"
 	// Submit form
-	resp, err := http.PostForm(postUrl, values)
+	resp, err := myClient.PostForm(postUrl, values)
 	if err != nil {
-		//log.Fatal(err)
+		fmt.Println(err)
 	}
 
 	resp.Body.Close()
@@ -146,7 +165,7 @@ func main() {
 	p.LoadSite()
 	p.getLinks()
 	for _, v := range p.Links {
-		fmt.Printf("Link <%s> href <%s> Date <%s>\n", v.Text, v.Href, RenderTime(p.time))
+		fmt.Printf("Link <%s> href <%s> Date <%s>\n", v.Text, v.Href, RenderTime(p.Time))
 	}
-
+	p.PostForm()
 }
