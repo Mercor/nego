@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"code.google.com/p/go.net/html"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -113,12 +114,12 @@ func (p *Page) LoadSite() {
 
 }
 
-func (p *Page) PostForm() {
+func (p *Page) PostForm() string {
 
 	values := make(url.Values)
 
 	values.Set("submitted", "true")
-	//	values.Set("news", $data)
+	values.Set("utf8", "true")
 
 	var buffer bytes.Buffer
 
@@ -137,7 +138,6 @@ func (p *Page) PostForm() {
 		buffer.WriteString("|")
 		buffer.WriteString(RenderTime(p.Time))
 		buffer.WriteString("\n")
-
 	}
 	values.Set("news", buffer.String())
 
@@ -150,9 +150,9 @@ func (p *Page) PostForm() {
 	if err != nil {
 		fmt.Println(err)
 	}
-
-	resp.Body.Close()
-
+	defer resp.Body.Close()
+	answer, err := ioutil.ReadAll(resp.Body)
+	return string(answer)
 }
 
 func RenderTime(t time.Time) string {
@@ -180,5 +180,5 @@ func main() {
 	for _, v := range p.Links {
 		fmt.Printf("Link <%s> href <%s> Date <%s>\n", v.Text, v.Href, RenderTime(p.Time))
 	}
-	p.PostForm()
+	fmt.Print(p.PostForm())
 }
