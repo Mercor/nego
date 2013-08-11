@@ -19,6 +19,12 @@ type Link struct {
 
 type Page struct {
 	SiteURL           string
+	Name              string
+	URL               string
+	Cols              int
+	Headln            string
+	Logo              string
+	MaxCols           int
 	baseURL           *url.URL
 	LinkRegex         string
 	linkRegexCompiled *regexp.Regexp
@@ -117,12 +123,13 @@ func (p *Page) PostForm() {
 	var buffer bytes.Buffer
 
 	fmt.Println(buffer.String())
-	buffer.WriteString("test\n")
-	buffer.WriteString("name:test\n")
-	buffer.WriteString("cols:2\n")
-	buffer.WriteString("headln:test\n")
-	buffer.WriteString("logo:test.jpg\n")
-	buffer.WriteString("url:test.com\n")
+	buffer.WriteString(fmt.Sprint(p.Name, "\n"))
+	buffer.WriteString(fmt.Sprint("name:", p.Name, "\n"))
+	buffer.WriteString(fmt.Sprint("name:", p.Name, "\n"))
+	buffer.WriteString(fmt.Sprint("cols:", p.Cols, "\n"))
+	buffer.WriteString(fmt.Sprint("headln:", p.Headln, "\n"))
+	buffer.WriteString(fmt.Sprint("logo:", p.Logo, "\n"))
+	buffer.WriteString(fmt.Sprint("url:", p.URL, "\n"))
 	for _, i := range p.Links {
 		buffer.WriteString(i.Text)
 		buffer.WriteString("|")
@@ -134,10 +141,10 @@ func (p *Page) PostForm() {
 	}
 	values.Set("news", buffer.String())
 
-	proxyUrl, err := url.Parse("http://127.0.0.1:8888")
-	myClient := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
-
-	postUrl := "http://www.newsempire.net/up/shownews.php"
+	//proxyUrl, err := url.Parse("http://127.0.0.1:8888")
+	//myClient := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
+	myClient := &http.Client{}
+	postUrl := "http://www.newsempire.net/up/shownewsgo.php"
 	// Submit form
 	resp, err := myClient.PostForm(postUrl, values)
 	if err != nil {
@@ -162,6 +169,12 @@ func main() {
 	var p Page
 	p.SiteURL = "http://entwickler.com/aggregator/categories/1"
 	p.LinkRegex = ".*news.*|webmagazin.de"
+	p.URL = "http://entwickler.com/"
+	p.Cols = 2
+	p.MaxCols = 20
+	p.Headln = "Entwickler.com"
+	p.Logo = "entwickler.jpg"
+	p.Name = "entwickler"
 	p.LoadSite()
 	p.getLinks()
 	for _, v := range p.Links {
